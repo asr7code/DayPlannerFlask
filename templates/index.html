@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Daily Planner</title>
+
+<style>
+body{
+    font-family:Arial;
+    background:#f4f6f8;
+    padding:20px;
+}
+.container{
+    max-width:700px;
+    margin:auto;
+    background:white;
+    padding:25px;
+    border-radius:12px;
+    box-shadow:0 5px 15px rgba(0,0,0,0.1);
+}
+input,select{
+    width:100%;
+    padding:10px;
+    margin:5px 0;
+}
+button{
+    padding:10px;
+    background:#007bff;
+    color:white;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+}
+button:hover{background:#0056b3;}
+.task{
+    background:#f9f9f9;
+    padding:10px;
+    margin:6px 0;
+    border-radius:6px;
+}
+.section-title{
+    margin-top:15px;
+    background:#eee;
+    padding:8px;
+    border-radius:6px;
+}
+.completed{
+    text-decoration:line-through;
+    color:gray;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>🗓 Daily Planner</h2>
+
+<h3>Register</h3>
+<input id="regName" placeholder="Name">
+<input id="regEmail" placeholder="Email">
+<button onclick="register()">Register</button>
+
+<hr>
+
+<h3>Login</h3>
+<input id="loginEmail" placeholder="Email">
+<button onclick="login()">Login</button>
+
+<hr>
+
+<div id="planner" style="display:none;">
+
+<h3>Welcome <span id="username"></span></h3>
+<button onclick="logout()">Logout</button>
+
+<hr>
+
+<h3>Add Task</h3>
+
+<input id="title" placeholder="Task name">
+
+<select id="time"></select>
+
+<select id="category">
+<option>Morning</option>
+<option>Afternoon</option>
+<option>Evening</option>
+</select>
+
+<button onclick="addTask()">Add Task</button>
+
+<hr>
+
+<h3>Your Planner</h3>
+<div id="tasks"></div>
+
+</div>
+</div>
+
+<script>
+
+let currentUserId = localStorage.getItem("userId");
+let currentUserName = localStorage.getItem("name");
+
+/* ===== TIME SCROLL SELECT ===== */
+function generateTimes(){
+    const select=document.getElementById("time");
+    for(let h=0; h<24; h++){
+        for(let m=0; m<60; m+=15){
+            let hh=String(h).padStart(2,"0");
+            let mm=String(m).padStart(2,"0");
+            select.innerHTML += `<option>${hh}:${mm}</option>`;
+        }
+    }
+}
+generateTimes();
+
+/* AUTO LOGIN */
+if(currentUserId){
+    planner.style.display="block";
+    username.innerText=currentUserName;
+
+    fetch(`/daily-reset/${currentUserId}`,{
+        method:"POST"
+    }).then(()=>loadTasks());
+}
+
+/* REGISTER */
+async function register(){
+
+    const name=regName.value;
+    const email=regEmail.value;
+
+    const res=await fetch("/register",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({name,email})
+    });
+
+    const data=await res.json();
+    alert(data.message);
+}
+
+/* LOGIN */
+async function login(){
+
+    const email=loginEmail.value;
+
+    const res=await fetch("/login",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({email})
+    });
+
+    const data=await res.json();
+    alert(data.message);
+
+    if(data.userId){
+        currentUserId=data.userId;
+        currentUserName=data.name;
+
+        localStorage.setItem("userId",data.userId);
+        localStorage.setItem("name",data.name);
+
+        planner.style.display="block";
+        username.innerText=data.name;
+
+        await fetch(`/daily-reset/${currentUserId}`,{
+            method:"POST"
+        });
+
+        loadTasks();
+    }
+}
+
+/* LOGOUT */
+function logout(){
+    localStorage.clear();
+    location.reload();
+}
+
+/* ADD TASK */
+async function addTask(){
+
+    const title=document.getElementById("title").value;
+    const time=document.getElementById("time").value;
+    const category=document.getElementById("category").value;
+
+    await fetch("/add-task",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({
+            userId:currentUserId,
+            title,
+            time,
+            category
+        })
+    });
+
+    loadTasks();
+}
+
+/* LOAD TASKS */
+async function loadTasks(){
+
+    const res=await fetch(`/tasks/${currentUserId}`);
+    const tasks=await res.json();
+
+    tasksDiv.innerHTML="";
+
+    const groups={Morning:[],Afternoon:[],Evening:[]};
+
+    tasks.forEach(t=>groups[t.category]?.push(t));
+
+    for(let sec in groups){
+
+        tasksDiv.innerHTML += `<div class="section-title"><b>${sec}</b></div>`;
+
+        groups[sec].forEach(task=>{
+            tasksDiv.innerHTML += `
+            <div class="task ${task.completed ? "completed":""}">
+                <input type="checkbox"
+                ${task.completed ? "checked":""}
+                onchange="toggleTask('${task._id}',this.checked)">
+                ${task.title} - ${task.time}
+            </div>
+            `;
+        });
+    }
+}
+
+/* TOGGLE TASK */
+async function toggleTask(id,completed){
+
+    await fetch(`/task/${id}`,{
+        method:"PUT",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({completed})
+    });
+
+    loadTasks();
+}
+
+const tasksDiv=document.getElementById("tasks");
+
+</script>
+
+</body>
+</html>
