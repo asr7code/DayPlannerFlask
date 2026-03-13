@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html>
 <head>
 <title>Daily Planner</title>
@@ -101,7 +102,7 @@ background:rgba(255,255,255,0.3);
 margin:20px 0;
 }
 
-/* TASK SECTION */
+/* SECTION TITLES */
 
 .section-title{
 margin-top:20px;
@@ -133,7 +134,7 @@ background:rgba(255,255,255,0.25);
 flex:1;
 }
 
-/* COMPLETED TASK */
+/* COMPLETED */
 
 .completed span{
 text-decoration:line-through;
@@ -141,6 +142,7 @@ opacity:0.6;
 }
 
 </style>
+
 </head>
 
 <body>
@@ -337,7 +339,17 @@ tasksDiv.innerHTML="";
 
 const groups={Morning:[],Afternoon:[],Evening:[]};
 
-tasks.forEach(t=>groups[t.category]?.push(t));
+tasks.forEach(t=>{
+groups[t.category]?.push(t);
+});
+
+/* SORT TASKS BY TIME */
+
+for(let g in groups){
+groups[g].sort((a,b)=>{
+return a.time.localeCompare(b.time);
+});
+}
 
 for(let sec in groups){
 
