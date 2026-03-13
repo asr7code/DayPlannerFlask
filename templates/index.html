@@ -15,8 +15,6 @@ box-sizing:border-box;
 font-family:'Poppins',sans-serif;
 }
 
-/* BACKGROUND */
-
 body{
 min-height:100vh;
 background:
@@ -29,8 +27,6 @@ justify-content:center;
 padding:30px;
 }
 
-/* MAIN CARD */
-
 .container{
 width:720px;
 background:rgba(255,255,255,0.12);
@@ -41,22 +37,15 @@ box-shadow:0 15px 40px rgba(0,0,0,0.4);
 color:white;
 }
 
-/* HEADINGS */
-
 h2{
 text-align:center;
 margin-bottom:20px;
-font-weight:600;
-letter-spacing:1px;
 }
 
 h3{
 margin-top:15px;
 margin-bottom:8px;
-font-weight:500;
 }
-
-/* INPUTS */
 
 input,select{
 width:100%;
@@ -65,10 +54,7 @@ border:none;
 border-radius:8px;
 margin:6px 0 12px;
 outline:none;
-font-size:14px;
 }
-
-/* BUTTONS */
 
 button{
 padding:10px 16px;
@@ -77,23 +63,16 @@ border:none;
 color:white;
 border-radius:8px;
 cursor:pointer;
-font-weight:500;
-transition:0.2s;
 }
 
 button:hover{
 transform:translateY(-2px);
-box-shadow:0 6px 15px rgba(0,0,0,0.4);
 }
-
-/* LOGOUT */
 
 .logout{
 background:#ff4d4d;
 margin-bottom:10px;
 }
-
-/* HR */
 
 hr{
 border:none;
@@ -102,7 +81,24 @@ background:rgba(255,255,255,0.3);
 margin:20px 0;
 }
 
-/* SECTION TITLES */
+/* PROGRESS BAR */
+
+.progress-container{
+background:rgba(255,255,255,0.2);
+border-radius:20px;
+height:10px;
+margin-bottom:15px;
+}
+
+.progress-bar{
+height:10px;
+border-radius:20px;
+background:#ff9a3c;
+width:0%;
+transition:0.4s;
+}
+
+/* SECTION */
 
 .section-title{
 margin-top:20px;
@@ -113,14 +109,14 @@ background:rgba(255,255,255,0.08);
 border-radius:6px;
 }
 
-/* TASK ITEM */
+/* TASK */
 
 .task{
 display:flex;
 align-items:center;
 gap:10px;
 background:rgba(255,255,255,0.15);
-padding:10px 12px;
+padding:10px;
 border-radius:10px;
 margin-top:8px;
 transition:0.2s;
@@ -134,7 +130,20 @@ background:rgba(255,255,255,0.25);
 flex:1;
 }
 
-/* COMPLETED */
+/* UPCOMING TASK */
+
+.upcoming{
+border:2px solid #ffb347;
+}
+
+/* DELETE BUTTON */
+
+.delete{
+background:#ff3b3b;
+padding:5px 8px;
+border-radius:6px;
+font-size:12px;
+}
 
 .completed span{
 text-decoration:line-through;
@@ -171,6 +180,10 @@ opacity:0.6;
 
 <hr>
 
+<div class="progress-container">
+<div id="progressBar" class="progress-bar"></div>
+</div>
+
 <h3>Add Task</h3>
 
 <input id="title" placeholder="Task name">
@@ -198,24 +211,20 @@ opacity:0.6;
 let currentUserId = localStorage.getItem("userId");
 let currentUserName = localStorage.getItem("name");
 
-/* GENERATE TIME OPTIONS */
+/* TIME GENERATOR */
 
 function generateTimes(){
 
 const select=document.getElementById("time");
 
 for(let h=0;h<24;h++){
-
 for(let m=0;m<60;m+=15){
 
 let hh=String(h).padStart(2,"0");
 let mm=String(m).padStart(2,"0");
 
 select.innerHTML+=`<option>${hh}:${mm}</option>`;
-
-}
-
-}
+}}
 
 }
 
@@ -238,19 +247,16 @@ method:"POST"
 
 async function register(){
 
-const name=regName.value;
-const email=regEmail.value;
-
 const res=await fetch("/register",{
-
 method:"POST",
 headers:{ "Content-Type":"application/json" },
-body:JSON.stringify({name,email})
-
+body:JSON.stringify({
+name:regName.value,
+email:regEmail.value
+})
 });
 
 const data=await res.json();
-
 alert(data.message);
 
 }
@@ -259,18 +265,15 @@ alert(data.message);
 
 async function login(){
 
-const email=loginEmail.value;
-
 const res=await fetch("/login",{
-
 method:"POST",
 headers:{ "Content-Type":"application/json" },
-body:JSON.stringify({email})
-
+body:JSON.stringify({
+email:loginEmail.value
+})
 });
 
 const data=await res.json();
-
 alert(data.message);
 
 if(data.userId){
@@ -284,9 +287,7 @@ localStorage.setItem("name",data.name);
 planner.style.display="block";
 username.innerText=data.name;
 
-await fetch(`/daily-reset/${currentUserId}`,{
-method:"POST"
-});
+await fetch(`/daily-reset/${currentUserId}`,{method:"POST"});
 
 loadTasks();
 
@@ -297,31 +298,23 @@ loadTasks();
 /* LOGOUT */
 
 function logout(){
-
 localStorage.clear();
 location.reload();
-
 }
 
 /* ADD TASK */
 
 async function addTask(){
 
-const title=document.getElementById("title").value;
-const time=document.getElementById("time").value;
-const category=document.getElementById("category").value;
-
 await fetch("/add-task",{
-
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({
 userId:currentUserId,
-title,
-time,
-category
+title:title.value,
+time:time.value,
+category:category.value
 })
-
 });
 
 loadTasks();
@@ -339,17 +332,24 @@ tasksDiv.innerHTML="";
 
 const groups={Morning:[],Afternoon:[],Evening:[]};
 
-tasks.forEach(t=>{
-groups[t.category]?.push(t);
-});
-
-/* SORT TASKS BY TIME */
+tasks.forEach(t=>groups[t.category]?.push(t));
 
 for(let g in groups){
-groups[g].sort((a,b)=>{
-return a.time.localeCompare(b.time);
-});
+groups[g].sort((a,b)=>a.time.localeCompare(b.time));
 }
+
+let completed=0;
+let nextTask=null;
+let now=new Date();
+let currentTime=now.getHours().toString().padStart(2,"0")+":"+now.getMinutes().toString().padStart(2,"0");
+
+tasks.forEach(t=>{
+if(t.completed) completed++;
+if(!t.completed && (!nextTask || t.time<nextTask.time)) nextTask=t;
+});
+
+let progress=(completed/tasks.length)*100 || 0;
+progressBar.style.width=progress+"%";
 
 for(let sec in groups){
 
@@ -357,13 +357,18 @@ tasksDiv.innerHTML+=`<div class="section-title">${sec}</div>`;
 
 groups[sec].forEach(task=>{
 
+let highlight=nextTask && task._id===nextTask._id ? "upcoming" : "";
+
 tasksDiv.innerHTML+=`
-<div class="task ${task.completed ? "completed":""}">
+<div class="task ${task.completed?"completed":""} ${highlight}">
 <input type="checkbox"
-${task.completed ? "checked":""}
+${task.completed?"checked":""}
 onchange="toggleTask('${task._id}',this.checked)">
 
 <span>${task.title} • ${task.time}</span>
+
+<button class="delete" onclick="deleteTask('${task._id}')">X</button>
+
 </div>
 `;
 
@@ -373,16 +378,26 @@ onchange="toggleTask('${task._id}',this.checked)">
 
 }
 
-/* TOGGLE TASK */
+/* TOGGLE */
 
 async function toggleTask(id,completed){
 
 await fetch(`/task/${id}`,{
-
 method:"PUT",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({completed})
+});
 
+loadTasks();
+
+}
+
+/* DELETE */
+
+async function deleteTask(id){
+
+await fetch(`/task/${id}`,{
+method:"DELETE"
 });
 
 loadTasks();
