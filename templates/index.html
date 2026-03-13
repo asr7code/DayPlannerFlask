@@ -15,8 +15,6 @@ box-sizing:border-box;
 font-family:'Poppins',sans-serif;
 }
 
-/* theme */
-
 body{
 min-height:100vh;
 background:
@@ -30,10 +28,8 @@ padding:30px;
 color:white;
 }
 
-/* container */
-
 .container{
-width:750px;
+width:720px;
 max-width:95%;
 background:rgba(255,255,255,0.12);
 backdrop-filter:blur(15px);
@@ -42,12 +38,8 @@ padding:30px;
 box-shadow:0 15px 40px rgba(0,0,0,0.4);
 }
 
-/* headings */
-
 h2{text-align:center;margin-bottom:20px}
-h3{margin:15px 0 8px}
-
-/* inputs */
+h3{margin-top:15px;margin-bottom:8px}
 
 input,select{
 width:100%;
@@ -56,8 +48,6 @@ border-radius:8px;
 border:none;
 margin:5px 0 10px;
 }
-
-/* buttons */
 
 button{
 padding:10px 14px;
@@ -68,9 +58,14 @@ color:white;
 cursor:pointer;
 }
 
-button:hover{transform:translateY(-2px)}
-
 .logout{background:#ff4d4d}
+
+hr{
+border:none;
+height:1px;
+background:rgba(255,255,255,0.3);
+margin:20px 0;
+}
 
 /* progress */
 
@@ -104,7 +99,7 @@ font-weight:600;
 .task{
 display:flex;
 align-items:center;
-gap:10px;
+gap:12px;
 background:rgba(255,255,255,0.18);
 padding:12px;
 border-radius:12px;
@@ -121,6 +116,15 @@ color:#ffd27f;
 flex:1;
 }
 
+/* completed */
+
+.completed .task-title{
+text-decoration:line-through;
+opacity:0.6;
+}
+
+/* delete */
+
 .delete{
 background:#ff4d4d;
 padding:6px 8px;
@@ -133,30 +137,6 @@ border-radius:6px;
 border:2px solid #ffd27f;
 }
 
-/* chart */
-
-.chart{
-margin-top:20px;
-background:rgba(255,255,255,0.15);
-padding:10px;
-border-radius:10px;
-}
-
-/* mobile */
-
-@media (max-width:600px){
-
-.container{
-padding:20px;
-}
-
-.task{
-flex-direction:column;
-align-items:flex-start;
-}
-
-}
-
 </style>
 
 </head>
@@ -166,8 +146,6 @@ align-items:flex-start;
 <div class="container">
 
 <h2>🌅 Daily Planner</h2>
-
-<button onclick="toggleTheme()">🌙 Toggle Theme</button>
 
 <h3>Register</h3>
 <input id="regName" placeholder="Name">
@@ -208,11 +186,6 @@ align-items:flex-start;
 <h3>Your Planner</h3>
 <div id="tasks"></div>
 
-<div class="chart">
-<h3>Weekly Productivity</h3>
-<canvas id="chartCanvas"></canvas>
-</div>
-
 </div>
 </div>
 
@@ -221,13 +194,7 @@ align-items:flex-start;
 let currentUserId = localStorage.getItem("userId");
 let currentUserName = localStorage.getItem("name");
 
-/* theme */
-
-function toggleTheme(){
-document.body.classList.toggle("dark");
-}
-
-/* time options */
+/* generate time */
 
 function generateTimes(){
 
@@ -263,17 +230,13 @@ return "Evening";
 
 }
 
-/* auto time */
+/* auto assign */
 
 function autoAssignTime(){
-
-let base=["08:00","09:00","10:00","14:00","18:00"];
-
-return base[Math.floor(Math.random()*base.length)];
-
+return "08:00";
 }
 
-/* login persistence */
+/* auto login */
 
 if(currentUserId){
 
@@ -291,12 +254,14 @@ method:"POST"
 async function register(){
 
 const res=await fetch("/register",{
+
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({
 name:regName.value,
 email:regEmail.value
 })
+
 });
 
 const data=await res.json();
@@ -309,11 +274,13 @@ alert(data.message);
 async function login(){
 
 const res=await fetch("/login",{
+
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({
 email:loginEmail.value
 })
+
 });
 
 const data=await res.json();
@@ -392,26 +359,12 @@ for(let g in groups){
 groups[g].sort((a,b)=>a.time.localeCompare(b.time));
 }
 
+/* progress */
+
 let completed=tasks.filter(t=>t.completed).length;
 let progress=(completed/tasks.length)*100 || 0;
 
 progressBar.style.width=progress+"%";
-
-/* upcoming notification */
-
-let nextTask=null;
-
-tasks.forEach(t=>{
-if(!t.completed){
-if(!nextTask || t.time<nextTask.time){
-nextTask=t;
-}
-}
-});
-
-if(nextTask){
-notify(nextTask.title,nextTask.time);
-}
 
 /* render */
 
@@ -421,11 +374,9 @@ tasksDiv.innerHTML+=`<div class="section-title">${sec}</div>`;
 
 groups[sec].forEach(task=>{
 
-let highlight=(nextTask && task._id===nextTask._id)?"upcoming":"";
-
 tasksDiv.innerHTML+=`
 
-<div class="task ${highlight}">
+<div class="task ${task.completed?"completed":""}">
 
 <input type="checkbox"
 ${task.completed?"checked":""}
@@ -474,24 +425,6 @@ method:"DELETE"
 });
 
 loadTasks();
-
-}
-
-/* notification */
-
-function notify(title,time){
-
-if(Notification.permission==="granted"){
-
-new Notification("Upcoming Task",{
-body:title+" at "+time
-});
-
-}else{
-
-Notification.requestPermission();
-
-}
 
 }
 
