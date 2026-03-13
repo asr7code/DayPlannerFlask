@@ -3,50 +3,143 @@
 <head>
 <title>Daily Planner</title>
 
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
 <style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Poppins',sans-serif;
+}
+
+/* BACKGROUND */
+
 body{
-    font-family:Arial;
-    background:#f4f6f8;
-    padding:20px;
+min-height:100vh;
+background:
+linear-gradient(rgba(0,0,0,0.45),rgba(0,0,0,0.55)),
+url("{{ url_for('static', filename='images/background.jpg') }}")
+no-repeat center/cover;
+display:flex;
+align-items:center;
+justify-content:center;
+padding:30px;
 }
+
+/* MAIN CARD */
+
 .container{
-    max-width:700px;
-    margin:auto;
-    background:white;
-    padding:25px;
-    border-radius:12px;
-    box-shadow:0 5px 15px rgba(0,0,0,0.1);
+width:720px;
+background:rgba(255,255,255,0.12);
+backdrop-filter:blur(15px);
+border-radius:18px;
+padding:35px;
+box-shadow:0 15px 40px rgba(0,0,0,0.4);
+color:white;
 }
+
+/* HEADINGS */
+
+h2{
+text-align:center;
+margin-bottom:20px;
+font-weight:600;
+letter-spacing:1px;
+}
+
+h3{
+margin-top:15px;
+margin-bottom:8px;
+font-weight:500;
+}
+
+/* INPUTS */
+
 input,select{
-    width:100%;
-    padding:10px;
-    margin:5px 0;
+width:100%;
+padding:11px;
+border:none;
+border-radius:8px;
+margin:6px 0 12px;
+outline:none;
+font-size:14px;
 }
+
+/* BUTTONS */
+
 button{
-    padding:10px;
-    background:#007bff;
-    color:white;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
+padding:10px 16px;
+background:linear-gradient(45deg,#ff9a3c,#ff6a00);
+border:none;
+color:white;
+border-radius:8px;
+cursor:pointer;
+font-weight:500;
+transition:0.2s;
 }
-button:hover{background:#0056b3;}
-.task{
-    background:#f9f9f9;
-    padding:10px;
-    margin:6px 0;
-    border-radius:6px;
+
+button:hover{
+transform:translateY(-2px);
+box-shadow:0 6px 15px rgba(0,0,0,0.4);
 }
+
+/* LOGOUT */
+
+.logout{
+background:#ff4d4d;
+margin-bottom:10px;
+}
+
+/* HR */
+
+hr{
+border:none;
+height:1px;
+background:rgba(255,255,255,0.3);
+margin:20px 0;
+}
+
+/* TASK SECTION */
+
 .section-title{
-    margin-top:15px;
-    background:#eee;
-    padding:8px;
-    border-radius:6px;
+margin-top:20px;
+font-weight:600;
+padding:6px 10px;
+border-left:4px solid #ffa94d;
+background:rgba(255,255,255,0.08);
+border-radius:6px;
 }
-.completed{
-    text-decoration:line-through;
-    color:gray;
+
+/* TASK ITEM */
+
+.task{
+display:flex;
+align-items:center;
+gap:10px;
+background:rgba(255,255,255,0.15);
+padding:10px 12px;
+border-radius:10px;
+margin-top:8px;
+transition:0.2s;
 }
+
+.task:hover{
+background:rgba(255,255,255,0.25);
+}
+
+.task span{
+flex:1;
+}
+
+/* COMPLETED TASK */
+
+.completed span{
+text-decoration:line-through;
+opacity:0.6;
+}
+
 </style>
 </head>
 
@@ -54,17 +147,17 @@ button:hover{background:#0056b3;}
 
 <div class="container">
 
-<h2>🗓 Daily Planner</h2>
+<h2>🌅 Daily Planner</h2>
 
 <h3>Register</h3>
-<input id="regName" placeholder="Name">
-<input id="regEmail" placeholder="Email">
+<input id="regName" placeholder="Your Name">
+<input id="regEmail" placeholder="Your Email">
 <button onclick="register()">Register</button>
 
 <hr>
 
 <h3>Login</h3>
-<input id="loginEmail" placeholder="Email">
+<input id="loginEmail" placeholder="Enter Email">
 <button onclick="login()">Login</button>
 
 <hr>
@@ -72,7 +165,7 @@ button:hover{background:#0056b3;}
 <div id="planner" style="display:none;">
 
 <h3>Welcome <span id="username"></span></h3>
-<button onclick="logout()">Logout</button>
+<button class="logout" onclick="logout()">Logout</button>
 
 <hr>
 
@@ -103,143 +196,185 @@ button:hover{background:#0056b3;}
 let currentUserId = localStorage.getItem("userId");
 let currentUserName = localStorage.getItem("name");
 
-/* ===== TIME SCROLL SELECT ===== */
+/* GENERATE TIME OPTIONS */
+
 function generateTimes(){
-    const select=document.getElementById("time");
-    for(let h=0; h<24; h++){
-        for(let m=0; m<60; m+=15){
-            let hh=String(h).padStart(2,"0");
-            let mm=String(m).padStart(2,"0");
-            select.innerHTML += `<option>${hh}:${mm}</option>`;
-        }
-    }
+
+const select=document.getElementById("time");
+
+for(let h=0;h<24;h++){
+
+for(let m=0;m<60;m+=15){
+
+let hh=String(h).padStart(2,"0");
+let mm=String(m).padStart(2,"0");
+
+select.innerHTML+=`<option>${hh}:${mm}</option>`;
+
 }
+
+}
+
+}
+
 generateTimes();
 
 /* AUTO LOGIN */
-if(currentUserId){
-    planner.style.display="block";
-    username.innerText=currentUserName;
 
-    fetch(`/daily-reset/${currentUserId}`,{
-        method:"POST"
-    }).then(()=>loadTasks());
+if(currentUserId){
+
+planner.style.display="block";
+username.innerText=currentUserName;
+
+fetch(`/daily-reset/${currentUserId}`,{
+method:"POST"
+}).then(()=>loadTasks());
+
 }
 
 /* REGISTER */
+
 async function register(){
 
-    const name=regName.value;
-    const email=regEmail.value;
+const name=regName.value;
+const email=regEmail.value;
 
-    const res=await fetch("/register",{
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({name,email})
-    });
+const res=await fetch("/register",{
 
-    const data=await res.json();
-    alert(data.message);
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body:JSON.stringify({name,email})
+
+});
+
+const data=await res.json();
+
+alert(data.message);
+
 }
 
 /* LOGIN */
+
 async function login(){
 
-    const email=loginEmail.value;
+const email=loginEmail.value;
 
-    const res=await fetch("/login",{
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({email})
-    });
+const res=await fetch("/login",{
 
-    const data=await res.json();
-    alert(data.message);
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body:JSON.stringify({email})
 
-    if(data.userId){
-        currentUserId=data.userId;
-        currentUserName=data.name;
+});
 
-        localStorage.setItem("userId",data.userId);
-        localStorage.setItem("name",data.name);
+const data=await res.json();
 
-        planner.style.display="block";
-        username.innerText=data.name;
+alert(data.message);
 
-        await fetch(`/daily-reset/${currentUserId}`,{
-            method:"POST"
-        });
+if(data.userId){
 
-        loadTasks();
-    }
+currentUserId=data.userId;
+currentUserName=data.name;
+
+localStorage.setItem("userId",data.userId);
+localStorage.setItem("name",data.name);
+
+planner.style.display="block";
+username.innerText=data.name;
+
+await fetch(`/daily-reset/${currentUserId}`,{
+method:"POST"
+});
+
+loadTasks();
+
+}
+
 }
 
 /* LOGOUT */
+
 function logout(){
-    localStorage.clear();
-    location.reload();
+
+localStorage.clear();
+location.reload();
+
 }
 
 /* ADD TASK */
+
 async function addTask(){
 
-    const title=document.getElementById("title").value;
-    const time=document.getElementById("time").value;
-    const category=document.getElementById("category").value;
+const title=document.getElementById("title").value;
+const time=document.getElementById("time").value;
+const category=document.getElementById("category").value;
 
-    await fetch("/add-task",{
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({
-            userId:currentUserId,
-            title,
-            time,
-            category
-        })
-    });
+await fetch("/add-task",{
 
-    loadTasks();
+method:"POST",
+headers:{ "Content-Type":"application/json" },
+body:JSON.stringify({
+userId:currentUserId,
+title,
+time,
+category
+})
+
+});
+
+loadTasks();
+
 }
 
 /* LOAD TASKS */
+
 async function loadTasks(){
 
-    const res=await fetch(`/tasks/${currentUserId}`);
-    const tasks=await res.json();
+const res=await fetch(`/tasks/${currentUserId}`);
+const tasks=await res.json();
 
-    tasksDiv.innerHTML="";
+tasksDiv.innerHTML="";
 
-    const groups={Morning:[],Afternoon:[],Evening:[]};
+const groups={Morning:[],Afternoon:[],Evening:[]};
 
-    tasks.forEach(t=>groups[t.category]?.push(t));
+tasks.forEach(t=>groups[t.category]?.push(t));
 
-    for(let sec in groups){
+for(let sec in groups){
 
-        tasksDiv.innerHTML += `<div class="section-title"><b>${sec}</b></div>`;
+tasksDiv.innerHTML+=`<div class="section-title">${sec}</div>`;
 
-        groups[sec].forEach(task=>{
-            tasksDiv.innerHTML += `
-            <div class="task ${task.completed ? "completed":""}">
-                <input type="checkbox"
-                ${task.completed ? "checked":""}
-                onchange="toggleTask('${task._id}',this.checked)">
-                ${task.title} - ${task.time}
-            </div>
-            `;
-        });
-    }
+groups[sec].forEach(task=>{
+
+tasksDiv.innerHTML+=`
+<div class="task ${task.completed ? "completed":""}">
+<input type="checkbox"
+${task.completed ? "checked":""}
+onchange="toggleTask('${task._id}',this.checked)">
+
+<span>${task.title} • ${task.time}</span>
+</div>
+`;
+
+});
+
+}
+
 }
 
 /* TOGGLE TASK */
+
 async function toggleTask(id,completed){
 
-    await fetch(`/task/${id}`,{
-        method:"PUT",
-        headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({completed})
-    });
+await fetch(`/task/${id}`,{
 
-    loadTasks();
+method:"PUT",
+headers:{ "Content-Type":"application/json" },
+body:JSON.stringify({completed})
+
+});
+
+loadTasks();
+
 }
 
 const tasksDiv=document.getElementById("tasks");
