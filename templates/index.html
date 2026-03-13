@@ -15,6 +15,8 @@ box-sizing:border-box;
 font-family:'Poppins',sans-serif;
 }
 
+/* theme */
+
 body{
 min-height:100vh;
 background:
@@ -25,96 +27,84 @@ display:flex;
 align-items:center;
 justify-content:center;
 padding:30px;
+color:white;
 }
 
+/* container */
+
 .container{
-width:720px;
+width:750px;
+max-width:95%;
 background:rgba(255,255,255,0.12);
 backdrop-filter:blur(15px);
 border-radius:18px;
-padding:35px;
+padding:30px;
 box-shadow:0 15px 40px rgba(0,0,0,0.4);
-color:white;
 }
 
-h2{
-text-align:center;
-margin-bottom:20px;
-}
+/* headings */
 
-h3{
-margin-top:15px;
-margin-bottom:8px;
-}
+h2{text-align:center;margin-bottom:20px}
+h3{margin:15px 0 8px}
+
+/* inputs */
 
 input,select{
 width:100%;
-padding:11px;
-border:none;
+padding:10px;
 border-radius:8px;
-margin:6px 0 12px;
-outline:none;
+border:none;
+margin:5px 0 10px;
 }
 
+/* buttons */
+
 button{
-padding:10px 16px;
+padding:10px 14px;
 background:linear-gradient(45deg,#ff9a3c,#ff6a00);
 border:none;
-color:white;
 border-radius:8px;
+color:white;
 cursor:pointer;
 }
 
-button:hover{
-transform:translateY(-2px);
-}
+button:hover{transform:translateY(-2px)}
 
-.logout{
-background:#ff4d4d;
-margin-bottom:10px;
-}
-
-hr{
-border:none;
-height:1px;
-background:rgba(255,255,255,0.3);
-margin:20px 0;
-}
+.logout{background:#ff4d4d}
 
 /* progress */
 
 .progress-container{
-background:rgba(255,255,255,0.25);
 height:10px;
+background:rgba(255,255,255,0.2);
 border-radius:20px;
 margin-bottom:15px;
 }
 
 .progress-bar{
 height:10px;
-border-radius:20px;
 background:#ff9a3c;
+border-radius:20px;
 width:0%;
-transition:0.4s;
 }
 
 /* section */
 
 .section-title{
-margin-top:20px;
-font-weight:600;
+margin-top:18px;
 padding:6px 10px;
-border-left:4px solid #ffa94d;
-background:rgba(255,255,255,0.08);
+background:rgba(255,255,255,0.1);
+border-left:4px solid orange;
 border-radius:6px;
+font-weight:600;
 }
 
-/* task card */
+/* task */
 
 .task{
 display:flex;
 align-items:center;
-gap:12px;
+gap:10px;
 background:rgba(255,255,255,0.18);
 padding:12px;
 border-radius:12px;
@@ -123,8 +113,8 @@ margin-top:10px;
 
 .task-time{
 font-weight:600;
-color:#ffd27f;
 min-width:60px;
+color:#ffd27f;
 }
 
 .task-title{
@@ -133,19 +123,38 @@ flex:1;
 
 .delete{
 background:#ff4d4d;
-border:none;
-padding:6px 10px;
+padding:6px 8px;
 border-radius:6px;
-cursor:pointer;
 }
 
-.completed span{
-text-decoration:line-through;
-opacity:0.6;
-}
+/* upcoming */
 
 .upcoming{
 border:2px solid #ffd27f;
+}
+
+/* chart */
+
+.chart{
+margin-top:20px;
+background:rgba(255,255,255,0.15);
+padding:10px;
+border-radius:10px;
+}
+
+/* mobile */
+
+@media (max-width:600px){
+
+.container{
+padding:20px;
+}
+
+.task{
+flex-direction:column;
+align-items:flex-start;
+}
+
 }
 
 </style>
@@ -157,6 +166,8 @@ border:2px solid #ffd27f;
 <div class="container">
 
 <h2>🌅 Daily Planner</h2>
+
+<button onclick="toggleTheme()">🌙 Toggle Theme</button>
 
 <h3>Register</h3>
 <input id="regName" placeholder="Name">
@@ -197,6 +208,11 @@ border:2px solid #ffd27f;
 <h3>Your Planner</h3>
 <div id="tasks"></div>
 
+<div class="chart">
+<h3>Weekly Productivity</h3>
+<canvas id="chartCanvas"></canvas>
+</div>
+
 </div>
 </div>
 
@@ -205,15 +221,21 @@ border:2px solid #ffd27f;
 let currentUserId = localStorage.getItem("userId");
 let currentUserName = localStorage.getItem("name");
 
-/* generate time */
+/* theme */
+
+function toggleTheme(){
+document.body.classList.toggle("dark");
+}
+
+/* time options */
 
 function generateTimes(){
 
 const select=document.getElementById("time");
 
-for(let h=0;h<24;h++){
+for(let h=5;h<23;h++){
 
-for(let m=0;m<60;m+=15){
+for(let m=0;m<60;m+=30){
 
 let hh=String(h).padStart(2,"0");
 let mm=String(m).padStart(2,"0");
@@ -241,15 +263,17 @@ return "Evening";
 
 }
 
-/* auto assign */
+/* auto time */
 
 function autoAssignTime(){
 
-return "08:00";
+let base=["08:00","09:00","10:00","14:00","18:00"];
+
+return base[Math.floor(Math.random()*base.length)];
 
 }
 
-/* auto login */
+/* login persistence */
 
 if(currentUserId){
 
@@ -267,14 +291,12 @@ method:"POST"
 async function register(){
 
 const res=await fetch("/register",{
-
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({
 name:regName.value,
 email:regEmail.value
 })
-
 });
 
 const data=await res.json();
@@ -287,13 +309,11 @@ alert(data.message);
 async function login(){
 
 const res=await fetch("/login",{
-
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({
 email:loginEmail.value
 })
-
 });
 
 const data=await res.json();
@@ -321,10 +341,8 @@ loadTasks();
 /* logout */
 
 function logout(){
-
 localStorage.clear();
 location.reload();
-
 }
 
 /* add task */
@@ -374,14 +392,12 @@ for(let g in groups){
 groups[g].sort((a,b)=>a.time.localeCompare(b.time));
 }
 
-/* progress */
-
 let completed=tasks.filter(t=>t.completed).length;
 let progress=(completed/tasks.length)*100 || 0;
 
 progressBar.style.width=progress+"%";
 
-/* upcoming */
+/* upcoming notification */
 
 let nextTask=null;
 
@@ -392,6 +408,10 @@ nextTask=t;
 }
 }
 });
+
+if(nextTask){
+notify(nextTask.title,nextTask.time);
+}
 
 /* render */
 
@@ -405,7 +425,7 @@ let highlight=(nextTask && task._id===nextTask._id)?"upcoming":"";
 
 tasksDiv.innerHTML+=`
 
-<div class="task ${task.completed?"completed":""} ${highlight}">
+<div class="task ${highlight}">
 
 <input type="checkbox"
 ${task.completed?"checked":""}
@@ -454,6 +474,24 @@ method:"DELETE"
 });
 
 loadTasks();
+
+}
+
+/* notification */
+
+function notify(title,time){
+
+if(Notification.permission==="granted"){
+
+new Notification("Upcoming Task",{
+body:title+" at "+time
+});
+
+}else{
+
+Notification.requestPermission();
+
+}
 
 }
 
