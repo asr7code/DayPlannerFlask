@@ -202,6 +202,19 @@ def daily_reset(user_id):
 
     return jsonify({"message":"Reset checked"})
 
+@app.route("/task/<int:task_id>", methods=["DELETE"])
+def delete_task(task_id):
+
+    conn = sqlite3.connect(DB)
+    c = conn.cursor()
+
+    c.execute("DELETE FROM tasks WHERE id=?", (task_id,))
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({"message":"Task deleted"})
+
 
 if __name__ == "__main__":
     app.run()
