@@ -127,6 +127,33 @@ padding:6px 8px;
 border-radius:6px;
 }
 
+/* popup */
+
+#periodPopup{
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.6);
+align-items:center;
+justify-content:center;
+}
+
+.popup-box{
+background:white;
+color:black;
+padding:25px;
+border-radius:10px;
+text-align:center;
+}
+
+.popup-box button{
+margin:5px;
+background:#ff7a18;
+}
+
 </style>
 
 </head>
@@ -169,12 +196,6 @@ border-radius:6px;
 <option value="">No specific time</option>
 </select>
 
-<select id="period" style="display:none">
-<option>Morning</option>
-<option>Afternoon</option>
-<option>Evening</option>
-</select>
-
 <button onclick="addTask()">Add Task</button>
 
 <hr>
@@ -185,12 +206,24 @@ border-radius:6px;
 </div>
 </div>
 
+<!-- PERIOD POPUP -->
+
+<div id="periodPopup">
+<div class="popup-box">
+
+<h3>Select Period</h3>
+
+<button onclick="selectPeriod('Morning')">Morning</button> <button onclick="selectPeriod('Afternoon')">Afternoon</button> <button onclick="selectPeriod('Evening')">Evening</button>
+
+</div>
+</div>
+
 <script>
 
 let currentUserId = localStorage.getItem("userId");
 let currentUserName = localStorage.getItem("name");
 
-/* generate times */
+/* generate time options */
 
 function generateTimes(){
 
@@ -213,19 +246,7 @@ select.innerHTML+=`<option value="${hh}:${mm}">${hh}:${mm}</option>`;
 
 generateTimes();
 
-/* show period selector */
-
-time.addEventListener("change",()=>{
-
-if(time.value===""){
-period.style.display="block";
-}else{
-period.style.display="none";
-}
-
-});
-
-/* detect period */
+/* period detection */
 
 function detectPeriod(time){
 
@@ -238,7 +259,7 @@ return "Evening";
 
 }
 
-/* get period range */
+/* period ranges */
 
 function getPeriodRange(period){
 
@@ -257,13 +278,11 @@ let [h,m]=start.split(":").map(Number);
 
 while(true){
 
-let time=
-String(h).padStart(2,"0")+":"+
-String(m).padStart(2,"0");
+let t=String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
 
-slots.push(time);
+slots.push(t);
 
-if(time===end) break;
+if(t===end) break;
 
 m+=30;
 
@@ -320,14 +339,12 @@ method:"POST"
 async function register(){
 
 const res=await fetch("/register",{
-
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({
 name:regName.value,
 email:regEmail.value
 })
-
 });
 
 const data=await res.json();
@@ -340,13 +357,11 @@ alert(data.message);
 async function login(){
 
 const res=await fetch("/login",{
-
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({
 email:loginEmail.value
 })
-
 });
 
 const data=await res.json();
@@ -380,34 +395,68 @@ location.reload();
 
 /* add task */
 
-async function addTask(){
+function addTask(){
 
-let title=document.getElementById("title").value;
+let title=document.getElementById("title").value.trim();
 let time=document.getElementById("time").value;
-let selectedPeriod=document.getElementById("period").value;
+
+if(!title){
+alert("Enter task name");
+return;
+}
+
+if(time===""){
+
+document.getElementById("periodPopup").style.display="flex";
+return;
+
+}
+
+createTask(title,time);
+
+}
+
+/* period selection */
+
+async function selectPeriod(period){
+
+document.getElementById("periodPopup").style.display="none";
+
+let title=document.getElementById("title").value.trim();
 
 let tasks=await fetch(`/tasks/${currentUserId}`)
 .then(r=>r.json());
 
-let category;
+let slot=findFreeSlot(period,tasks);
 
-if(time===""){
-
-category=selectedPeriod;
-
-let slot=findFreeSlot(category,tasks);
-
-time=slot.time;
+let time=slot.time;
 
 if(slot.conflict){
 title=title+" (no free slot)";
 }
 
-}else{
-
-category=detectPeriod(time);
+createTask(title,time);
 
 }
+
+/* create task */
+
+async function createTask(title,time){
+
+let tasks=await fetch(`/tasks/${currentUserId}`)
+.then(r=>r.json());
+
+let exists=tasks.some(t =>
+t.title.toLowerCase()===title.toLowerCase()
+&& t.time===time
+);
+
+if(exists){
+alert("Same task already exists at this time");
+return;
+}
+
+let category=detectPeriod(time);
 
 await fetch("/add-task",{
 
@@ -483,11 +532,9 @@ onchange="toggleTask('${task._id}',this.checked)">
 async function toggleTask(id,completed){
 
 await fetch(`/task/${id}`,{
-
 method:"PUT",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({completed})
-
 });
 
 loadTasks();
