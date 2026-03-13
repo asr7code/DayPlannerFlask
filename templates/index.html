@@ -116,25 +116,15 @@ color:#ffd27f;
 flex:1;
 }
 
-/* completed */
-
 .completed .task-title{
 text-decoration:line-through;
 opacity:0.6;
 }
 
-/* delete */
-
 .delete{
 background:#ff4d4d;
 padding:6px 8px;
 border-radius:6px;
-}
-
-/* upcoming */
-
-.upcoming{
-border:2px solid #ffd27f;
 }
 
 </style>
@@ -179,6 +169,12 @@ border:2px solid #ffd27f;
 <option value="">No specific time</option>
 </select>
 
+<select id="period" style="display:none">
+<option>Morning</option>
+<option>Afternoon</option>
+<option>Evening</option>
+</select>
+
 <button onclick="addTask()">Add Task</button>
 
 <hr>
@@ -194,7 +190,7 @@ border:2px solid #ffd27f;
 let currentUserId = localStorage.getItem("userId");
 let currentUserName = localStorage.getItem("name");
 
-/* generate time */
+/* generate times */
 
 function generateTimes(){
 
@@ -217,6 +213,18 @@ select.innerHTML+=`<option value="${hh}:${mm}">${hh}:${mm}</option>`;
 
 generateTimes();
 
+/* show period selector */
+
+time.addEventListener("change",()=>{
+
+if(time.value===""){
+period.style.display="block";
+}else{
+period.style.display="none";
+}
+
+});
+
 /* detect period */
 
 function detectPeriod(time){
@@ -230,10 +238,68 @@ return "Evening";
 
 }
 
-/* auto assign */
+/* get period range */
 
-function autoAssignTime(){
-return "08:00";
+function getPeriodRange(period){
+
+if(period==="Morning") return ["05:00","11:30"];
+if(period==="Afternoon") return ["12:00","16:30"];
+if(period==="Evening") return ["17:00","22:30"];
+
+}
+
+/* generate slots */
+
+function generateSlots(start,end){
+
+let slots=[];
+let [h,m]=start.split(":").map(Number);
+
+while(true){
+
+let time=
+String(h).padStart(2,"0")+":"+
+String(m).padStart(2,"0");
+
+slots.push(time);
+
+if(time===end) break;
+
+m+=30;
+
+if(m>=60){
+m=0;
+h++;
+}
+
+}
+
+return slots;
+
+}
+
+/* find free slot */
+
+function findFreeSlot(period,tasks){
+
+let [start,end]=getPeriodRange(period);
+
+let slots=generateSlots(start,end);
+
+let used=tasks
+.filter(t=>t.category===period)
+.map(t=>t.time);
+
+for(let s of slots){
+
+if(!used.includes(s)){
+return {time:s,conflict:false};
+}
+
+}
+
+return {time:slots[slots.length-1],conflict:true};
+
 }
 
 /* auto login */
@@ -318,12 +384,30 @@ async function addTask(){
 
 let title=document.getElementById("title").value;
 let time=document.getElementById("time").value;
+let selectedPeriod=document.getElementById("period").value;
+
+let tasks=await fetch(`/tasks/${currentUserId}`)
+.then(r=>r.json());
+
+let category;
 
 if(time===""){
-time=autoAssignTime();
+
+category=selectedPeriod;
+
+let slot=findFreeSlot(category,tasks);
+
+time=slot.time;
+
+if(slot.conflict){
+title=title+" (no free slot)";
 }
 
-let category=detectPeriod(time);
+}else{
+
+category=detectPeriod(time);
+
+}
 
 await fetch("/add-task",{
 
@@ -359,14 +443,10 @@ for(let g in groups){
 groups[g].sort((a,b)=>a.time.localeCompare(b.time));
 }
 
-/* progress */
-
 let completed=tasks.filter(t=>t.completed).length;
 let progress=(completed/tasks.length)*100 || 0;
 
 progressBar.style.width=progress+"%";
-
-/* render */
 
 for(let sec in groups){
 
@@ -386,9 +466,7 @@ onchange="toggleTask('${task._id}',this.checked)">
 
 <div class="task-title">${task.title}</div>
 
-<button class="delete" onclick="deleteTask('${task._id}')">
-🗑
-</button>
+<button class="delete" onclick="deleteTask('${task._id}')">🗑</button>
 
 </div>
 
