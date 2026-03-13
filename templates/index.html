@@ -81,12 +81,12 @@ background:rgba(255,255,255,0.3);
 margin:20px 0;
 }
 
-/* PROGRESS BAR */
+/* progress */
 
 .progress-container{
-background:rgba(255,255,255,0.2);
-border-radius:20px;
+background:rgba(255,255,255,0.25);
 height:10px;
+border-radius:20px;
 margin-bottom:15px;
 }
 
@@ -98,7 +98,7 @@ width:0%;
 transition:0.4s;
 }
 
-/* SECTION */
+/* section */
 
 .section-title{
 margin-top:20px;
@@ -109,45 +109,43 @@ background:rgba(255,255,255,0.08);
 border-radius:6px;
 }
 
-/* TASK */
+/* task card */
 
 .task{
 display:flex;
 align-items:center;
-gap:10px;
-background:rgba(255,255,255,0.15);
-padding:10px;
-border-radius:10px;
-margin-top:8px;
-transition:0.2s;
+gap:12px;
+background:rgba(255,255,255,0.18);
+padding:12px;
+border-radius:12px;
+margin-top:10px;
 }
 
-.task:hover{
-background:rgba(255,255,255,0.25);
+.task-time{
+font-weight:600;
+color:#ffd27f;
+min-width:60px;
 }
 
-.task span{
+.task-title{
 flex:1;
 }
 
-/* UPCOMING TASK */
-
-.upcoming{
-border:2px solid #ffb347;
-}
-
-/* DELETE BUTTON */
-
 .delete{
-background:#ff3b3b;
-padding:5px 8px;
+background:#ff4d4d;
+border:none;
+padding:6px 10px;
 border-radius:6px;
-font-size:12px;
+cursor:pointer;
 }
 
 .completed span{
 text-decoration:line-through;
 opacity:0.6;
+}
+
+.upcoming{
+border:2px solid #ffd27f;
 }
 
 </style>
@@ -161,14 +159,14 @@ opacity:0.6;
 <h2>🌅 Daily Planner</h2>
 
 <h3>Register</h3>
-<input id="regName" placeholder="Your Name">
-<input id="regEmail" placeholder="Your Email">
+<input id="regName" placeholder="Name">
+<input id="regEmail" placeholder="Email">
 <button onclick="register()">Register</button>
 
 <hr>
 
 <h3>Login</h3>
-<input id="loginEmail" placeholder="Enter Email">
+<input id="loginEmail" placeholder="Email">
 <button onclick="login()">Login</button>
 
 <hr>
@@ -178,22 +176,18 @@ opacity:0.6;
 <h3>Welcome <span id="username"></span></h3>
 <button class="logout" onclick="logout()">Logout</button>
 
-<hr>
-
 <div class="progress-container">
 <div id="progressBar" class="progress-bar"></div>
 </div>
+
+<hr>
 
 <h3>Add Task</h3>
 
 <input id="title" placeholder="Task name">
 
-<select id="time"></select>
-
-<select id="category">
-<option>Morning</option>
-<option>Afternoon</option>
-<option>Evening</option>
+<select id="time">
+<option value="">No specific time</option>
 </select>
 
 <button onclick="addTask()">Add Task</button>
@@ -211,26 +205,51 @@ opacity:0.6;
 let currentUserId = localStorage.getItem("userId");
 let currentUserName = localStorage.getItem("name");
 
-/* TIME GENERATOR */
+/* generate time */
 
 function generateTimes(){
 
 const select=document.getElementById("time");
 
 for(let h=0;h<24;h++){
+
 for(let m=0;m<60;m+=15){
 
 let hh=String(h).padStart(2,"0");
 let mm=String(m).padStart(2,"0");
 
-select.innerHTML+=`<option>${hh}:${mm}</option>`;
-}}
+select.innerHTML+=`<option value="${hh}:${mm}">${hh}:${mm}</option>`;
+
+}
+
+}
 
 }
 
 generateTimes();
 
-/* AUTO LOGIN */
+/* detect period */
+
+function detectPeriod(time){
+
+let hour=parseInt(time.split(":")[0]);
+
+if(hour<12) return "Morning";
+if(hour<17) return "Afternoon";
+
+return "Evening";
+
+}
+
+/* auto assign */
+
+function autoAssignTime(){
+
+return "08:00";
+
+}
+
+/* auto login */
 
 if(currentUserId){
 
@@ -243,17 +262,19 @@ method:"POST"
 
 }
 
-/* REGISTER */
+/* register */
 
 async function register(){
 
 const res=await fetch("/register",{
+
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({
 name:regName.value,
 email:regEmail.value
 })
+
 });
 
 const data=await res.json();
@@ -261,16 +282,18 @@ alert(data.message);
 
 }
 
-/* LOGIN */
+/* login */
 
 async function login(){
 
 const res=await fetch("/login",{
+
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({
 email:loginEmail.value
 })
+
 });
 
 const data=await res.json();
@@ -295,33 +318,46 @@ loadTasks();
 
 }
 
-/* LOGOUT */
+/* logout */
 
 function logout(){
+
 localStorage.clear();
 location.reload();
+
 }
 
-/* ADD TASK */
+/* add task */
 
 async function addTask(){
 
+let title=document.getElementById("title").value;
+let time=document.getElementById("time").value;
+
+if(time===""){
+time=autoAssignTime();
+}
+
+let category=detectPeriod(time);
+
 await fetch("/add-task",{
+
 method:"POST",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({
 userId:currentUserId,
-title:title.value,
-time:time.value,
-category:category.value
+title,
+time,
+category
 })
+
 });
 
 loadTasks();
 
 }
 
-/* LOAD TASKS */
+/* load tasks */
 
 async function loadTasks(){
 
@@ -338,18 +374,26 @@ for(let g in groups){
 groups[g].sort((a,b)=>a.time.localeCompare(b.time));
 }
 
-let completed=0;
+/* progress */
+
+let completed=tasks.filter(t=>t.completed).length;
+let progress=(completed/tasks.length)*100 || 0;
+
+progressBar.style.width=progress+"%";
+
+/* upcoming */
+
 let nextTask=null;
-let now=new Date();
-let currentTime=now.getHours().toString().padStart(2,"0")+":"+now.getMinutes().toString().padStart(2,"0");
 
 tasks.forEach(t=>{
-if(t.completed) completed++;
-if(!t.completed && (!nextTask || t.time<nextTask.time)) nextTask=t;
+if(!t.completed){
+if(!nextTask || t.time<nextTask.time){
+nextTask=t;
+}
+}
 });
 
-let progress=(completed/tasks.length)*100 || 0;
-progressBar.style.width=progress+"%";
+/* render */
 
 for(let sec in groups){
 
@@ -357,19 +401,26 @@ tasksDiv.innerHTML+=`<div class="section-title">${sec}</div>`;
 
 groups[sec].forEach(task=>{
 
-let highlight=nextTask && task._id===nextTask._id ? "upcoming" : "";
+let highlight=(nextTask && task._id===nextTask._id)?"upcoming":"";
 
 tasksDiv.innerHTML+=`
+
 <div class="task ${task.completed?"completed":""} ${highlight}">
+
 <input type="checkbox"
 ${task.completed?"checked":""}
 onchange="toggleTask('${task._id}',this.checked)">
 
-<span>${task.title} • ${task.time}</span>
+<div class="task-time">${task.time}</div>
 
-<button class="delete" onclick="deleteTask('${task._id}')">X</button>
+<div class="task-title">${task.title}</div>
+
+<button class="delete" onclick="deleteTask('${task._id}')">
+🗑
+</button>
 
 </div>
+
 `;
 
 });
@@ -378,21 +429,23 @@ onchange="toggleTask('${task._id}',this.checked)">
 
 }
 
-/* TOGGLE */
+/* toggle */
 
 async function toggleTask(id,completed){
 
 await fetch(`/task/${id}`,{
+
 method:"PUT",
 headers:{ "Content-Type":"application/json" },
 body:JSON.stringify({completed})
+
 });
 
 loadTasks();
 
 }
 
-/* DELETE */
+/* delete */
 
 async function deleteTask(id){
 
